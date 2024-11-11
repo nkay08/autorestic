@@ -12,6 +12,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestLocationSorting(t *testing.T) {
+
+	t.Run("test sort, well defined", func(t *testing.T) {
+		locationsMap := map[string]Location{
+			"c": {
+				name:      "c",
+				DependsOn: []string{"b", "a"},
+			},
+			"a": {
+				name: "a",
+			},
+			"b": {
+				name:      "b",
+				DependsOn: []string{"a"},
+			},
+			"d": {
+				name:      "d",
+				DependsOn: []string{"c"},
+			},
+			"e": {
+				name:      "e",
+				DependsOn: []string{"b", "d", "a"},
+			},
+		}
+
+		result, error := SortLocationsTopological(locationsMap)
+		var locationsStrings []string
+		for _, loc := range result {
+			locationsStrings = append(locationsStrings, loc.name)
+		}
+		assertEqual(t, error, nil)
+		assertSliceEqual(t, locationsStrings, []string{"a", "b", "c", "d", "e"})
+	})
+
+	t.Run("test empty dependency", func(t *testing.T) {
+
+		locationsMap := map[string]Location{
+			"9": {
+				name: "9",
+			},
+			"1": {
+				name:      "1",
+				DependsOn: []string{"9"},
+			},
+			"5": {
+				name:      "5",
+				DependsOn: []string{"1"},
+			},
+		}
+
+		result, error := SortLocationsTopological(locationsMap)
+		var locationsStrings []string
+		for _, loc := range result {
+			locationsStrings = append(locationsStrings, loc.name)
+		}
+		assertEqual(t, error, nil)
+		assertSliceEqual(t, locationsStrings, []string{"9", "1", "5"})
+	})
+}
+
 func TestOptionToString(t *testing.T) {
 	t.Run("no prefix", func(t *testing.T) {
 		opt := "test"

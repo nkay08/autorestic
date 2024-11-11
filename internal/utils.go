@@ -116,3 +116,66 @@ func ArrayContains[T comparable](arr []T, needle T) bool {
 	}
 	return false
 }
+
+func TopologicalSort[T comparable](adjacencyList map[T][]T, reverse bool) ([]T, error) {
+	// https://www.geeksforgeeks.org/topological-sorting-indegree-based-solution/
+
+	var queue []T
+	var result []T
+	indegree := make(map[T]int)
+	// build indegree
+
+	for _, edges := range adjacencyList {
+		uniqueMap := make(map[T]int)
+		for _, adjacentNode := range edges {
+			uniqueMap[adjacentNode]++
+			if uniqueMap[adjacentNode] != 1 {
+				continue
+			}
+
+			indegree[adjacentNode]++
+
+		}
+	}
+
+	// fill queue with nodes that have indegree 0
+	for elem := range adjacencyList {
+		if indegree[elem] == 0 {
+			queue = append(queue, elem)
+		}
+	}
+
+	for len(queue) > 0 {
+		var currentNode T
+		currentNode, queue = queue[0], queue[1:]
+		result = append(result, currentNode)
+		uniqueMap := make(map[T]int)
+		for _, adjacentNode := range adjacencyList[currentNode] {
+			uniqueMap[adjacentNode]++
+			if uniqueMap[adjacentNode] != 1 {
+				continue
+			}
+			indegree[adjacentNode]--
+
+			if indegree[adjacentNode] == 0 {
+				queue = append(queue, adjacentNode)
+			}
+		}
+	}
+
+	if len(result) != len(adjacencyList) {
+		return nil, fmt.Errorf("cyclic dependency")
+	}
+
+	if !reverse {
+		return result, nil
+	}
+
+	// slice needs to be reversed
+	var resultReverse []T
+	for i := len(result) - 1; i >= 0; i-- {
+		resultReverse = append(resultReverse, result[i])
+	}
+
+	return resultReverse, nil
+}

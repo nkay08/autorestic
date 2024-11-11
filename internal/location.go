@@ -43,6 +43,7 @@ type Hooks struct {
 }
 
 type LocationCopy = map[string][]string
+type LocationDependency = []string
 
 type Location struct {
 	name         string               `mapstructure:",omitempty" yaml:",omitempty"`
@@ -54,6 +55,7 @@ type Location struct {
 	Options      Options              `mapstructure:"options,omitempty" yaml:"options,omitempty"`
 	ForgetOption LocationForgetOption `mapstructure:"forget,omitempty" yaml:"forget,omitempty"`
 	CopyOption   LocationCopy         `mapstructure:"copy,omitempty" yaml:"copy,omitempty"`
+	DependsOn    LocationDependency   `mapstructure:"depends_on,omitempty" depends_on:"copy,omitempty"`
 }
 
 func GetLocation(name string) (Location, bool) {

@@ -203,6 +203,24 @@ func CheckConfig() error {
 	return nil
 }
 
+func GetLocationAdjacencyListFromLocationMap(locations map[string]Location) map[string][]string {
+	locationsAsStrings := make(map[string][]string)
+	for key, location := range locations {
+		locationsAsStrings[key] = location.DependsOn
+	}
+	return locationsAsStrings
+}
+
+func SortLocationsTopological(locations map[string]Location) ([]Location, error) {
+	locationsAsStrings := GetLocationAdjacencyListFromLocationMap(locations)
+	sortedStrings, error := TopologicalSort(locationsAsStrings, true)
+	var result []Location
+	for _, locStr := range sortedStrings {
+		result = append(result, locations[locStr])
+	}
+	return result, error
+}
+
 func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 	var list []string
 	if backends {
