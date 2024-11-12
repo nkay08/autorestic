@@ -54,7 +54,7 @@ func TestLocationSorting(t *testing.T) {
 			},
 			"1": {
 				name:      "1",
-				DependsOn: []string{"9"},
+				DependsOn: []string{},
 			},
 			"5": {
 				name:      "5",
@@ -68,7 +68,7 @@ func TestLocationSorting(t *testing.T) {
 			locationsStrings = append(locationsStrings, loc.name)
 		}
 		assertEqual(t, error, nil)
-		assertSliceEqual(t, locationsStrings, []string{"9", "1", "5"})
+		assertSliceEqual(t, locationsStrings, []string{"1", "9", "5"})
 	})
 }
 

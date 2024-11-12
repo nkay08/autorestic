@@ -53,7 +53,9 @@ func TestTopologicalSorting(t *testing.T) {
 		}
 	})
 
-	t.Run("string original order empty edges", func(t *testing.T) {
+	t.Run("string empty edges", func(t *testing.T) {
+		// We cannot make an assumption about the order of iteration of the map!
+		// But it should not produce an error
 		adjList := map[string][]string{
 			"a": {},
 			"b": {},
@@ -61,10 +63,12 @@ func TestTopologicalSorting(t *testing.T) {
 		}
 		result, error := TopologicalSort(adjList, false)
 		assertEqual(t, error, nil)
-		assertSliceEqual(t, result, []string{"a", "b", "c"})
+		assertEqual(t, len(result), 3)
 	})
 
 	t.Run("string reverse original order empty edges", func(t *testing.T) {
+		// We cannot make an assumption about the order of iteration of the map!
+		// But it should not produce an error
 		adjList := map[string][]string{
 			"a": {},
 			"b": {},
@@ -72,7 +76,7 @@ func TestTopologicalSorting(t *testing.T) {
 		}
 		result, error := TopologicalSort(adjList, true)
 		assertEqual(t, error, nil)
-		assertSliceEqual(t, result, []string{"c", "b", "a"})
+		assertEqual(t, len(result), 3)
 	})
 
 	t.Run("complex order well defined", func(t *testing.T) {
