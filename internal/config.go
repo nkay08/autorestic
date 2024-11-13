@@ -200,6 +200,11 @@ func CheckConfig() error {
 			return err
 		}
 	}
+	_, error := SortLocationsTopological(c.Locations)
+	if error != nil {
+		return error
+	}
+
 	return nil
 }
 

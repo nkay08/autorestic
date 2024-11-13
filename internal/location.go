@@ -118,6 +118,15 @@ func (l Location) validate() error {
 		}
 	}
 
+	for _, dependsOn := range l.DependsOn {
+		if dependsOn == l.name {
+			return fmt.Errorf(`location "%s" cannot depend on itself in depends_on option`, l.name)
+		}
+		if _, ok := GetLocation(dependsOn); !ok {
+			return fmt.Errorf(`location "%s" has an invalid location "%s" in depends_on option`, l.name, dependsOn)
+		}
+	}
+
 	// Check if forget type is correct
 	if l.ForgetOption != "" {
 		if l.ForgetOption != LocationForgetYes && l.ForgetOption != LocationForgetNo && l.ForgetOption != LocationForgetPrune {
