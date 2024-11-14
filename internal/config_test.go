@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,6 +64,87 @@ func TestLocationSorting(t *testing.T) {
 		assertSliceEqual(t, result, []string{"9", "1", "5"})
 	})
 }
+
+func TestGetSelectedLocations(t *testing.T) {
+	config = &Config{
+		Locations: map[string]Location{
+			"a": {
+				name: "a",
+			},
+			"b": {
+				name: "b",
+			},
+			"c": {
+				name: "c",
+			},
+		},
+	}
+
+	t.Run("test all Locations", func(t *testing.T) {
+		_, ok := GetLocation("a")
+		if !ok {
+			t.Fail()
+		}
+
+		cmd := cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{"--all"})
+		cmd.Execute()
+
+		all, _ := cmd.Flags().GetBool("all")
+		assertEqual(t, all, true)
+
+		locList, err2 := GetAllOrSelected(&cmd, false)
+		assertEqual(t, err2, nil)
+		assertEqual(t, len(locList), 3)
+		assert.ElementsMatch(t, locList, []string{"a", "b", "c"})
+	})
+
+	t.Run("test no location selected", func(t *testing.T) {
+		cmd := cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{})
+		cmd.Execute()
+
+		strlist, _ := cmd.Flags().GetStringSlice("location")
+		assert.Empty(t, strlist)
+		// assert.NotEmpty(t, err)
+
+		all, _ := cmd.Flags().GetBool("all")
+		assert.Equal(t, all, false)
+
+		locs, _ := GetAllOrSelected(&cmd, false)
+		assert.Empty(t, locs)
+	})
+
+	t.Run("test select some locations", func(t *testing.T) {
+		cmd := cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{"-l", "a"})
+		cmd.Execute()
+
+		locs, err2 := GetAllOrSelected(&cmd, false)
+		assert.Equal(t, err2, nil)
+		assert.Contains(t, locs, "a")
+
+		cmd = cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{"-l", "a", "-l", "c"})
+		cmd.Execute()
+		locs, err2 = GetAllOrSelected(&cmd, false)
+		assert.Equal(t, err2, nil)
+		assert.Contains(t, locs, "a")
+		assert.Contains(t, locs, "c")
+	})
+
+	t.Run("test select not existing", func(t *testing.T) {
+		cmd := cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{"-l", "d"})
+		cmd.Execute()
+
+		_, err := GetAllOrSelected(&cmd, false)
+		assert.NotEmpty(t, err)
 	})
 }
 
