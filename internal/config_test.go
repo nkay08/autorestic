@@ -37,13 +37,9 @@ func TestLocationSorting(t *testing.T) {
 			},
 		}
 
-		result, error := SortLocationsTopological(locationsMap)
-		var locationsStrings []string
-		for _, loc := range result {
-			locationsStrings = append(locationsStrings, loc.name)
-		}
+		result, error := SortLocationsTopologicalFromMap(locationsMap)
 		assertEqual(t, error, nil)
-		assertSliceEqual(t, locationsStrings, []string{"a", "b", "c", "d", "e"})
+		assertSliceEqual(t, result, []string{"a", "b", "c", "d", "e"})
 	})
 
 	t.Run("test empty dependency", func(t *testing.T) {
@@ -54,7 +50,7 @@ func TestLocationSorting(t *testing.T) {
 			},
 			"1": {
 				name:      "1",
-				DependsOn: []string{},
+				DependsOn: []string{"9"},
 			},
 			"5": {
 				name:      "5",
@@ -62,13 +58,11 @@ func TestLocationSorting(t *testing.T) {
 			},
 		}
 
-		result, error := SortLocationsTopological(locationsMap)
-		var locationsStrings []string
-		for _, loc := range result {
-			locationsStrings = append(locationsStrings, loc.name)
-		}
+		result, error := SortLocationsTopologicalFromMap(locationsMap)
 		assertEqual(t, error, nil)
-		assertSliceEqual(t, locationsStrings, []string{"1", "9", "5"})
+		assertSliceEqual(t, result, []string{"9", "1", "5"})
+	})
+}
 	})
 }
 
