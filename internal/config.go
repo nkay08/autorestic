@@ -126,6 +126,12 @@ func (c *Config) Describe() {
 		}
 		colors.PrintDescription("To", tmp)
 
+		tmp = ""
+		for _, locDep := range l.DependsOn {
+			tmp += fmt.Sprintf("\t%s %s\n", colors.Success.Sprint("→"), locDep)
+		}
+		colors.PrintDescription("Depends On", tmp)
+
 		if l.Cron != "" {
 			colors.PrintDescription("Cron", l.Cron)
 		}
