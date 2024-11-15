@@ -1,6 +1,10 @@
 package internal
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestTopologicalSorting(t *testing.T) {
 	t.Run("simple string well defined", func(t *testing.T) {
@@ -9,8 +13,8 @@ func TestTopologicalSorting(t *testing.T) {
 			"b": {"c"},
 			"c": {"a"},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
 		assertSliceEqual(t, result, []string{"a", "c", "b"})
 	})
 
@@ -20,8 +24,8 @@ func TestTopologicalSorting(t *testing.T) {
 			2: {3},
 			3: {1},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
 		expected := []int{1, 3, 2}
 		for i, elem := range result {
 			if elem != expected[i] {
@@ -36,8 +40,8 @@ func TestTopologicalSorting(t *testing.T) {
 			"b": {"c", "c", "c"},
 			"c": {"a", "a"},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
 		assertSliceEqual(t, result, []string{"a", "c", "b"})
 	})
 
@@ -47,10 +51,8 @@ func TestTopologicalSorting(t *testing.T) {
 			"b": {"c"},
 			"c": {"b"},
 		}
-		_, error := TopologicalSort(adjList, true)
-		if error == nil {
-			t.Fatalf("No cyclic dependency found, but test data includes it!")
-		}
+		_, err := TopologicalSort(adjList, true)
+		assert.NotEmpty(t, err)
 	})
 
 	t.Run("string empty edges", func(t *testing.T) {
@@ -61,9 +63,9 @@ func TestTopologicalSorting(t *testing.T) {
 			"b": {},
 			"c": {},
 		}
-		result, error := TopologicalSort(adjList, false)
-		assertEqual(t, error, nil)
-		assertEqual(t, len(result), 3)
+		result, err := TopologicalSort(adjList, false)
+		assert.Empty(t, err)
+		assert.Equal(t, 3, len(result))
 	})
 
 	t.Run("string reverse original order empty edges", func(t *testing.T) {
@@ -74,9 +76,9 @@ func TestTopologicalSorting(t *testing.T) {
 			"b": {},
 			"c": {},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
-		assertEqual(t, len(result), 3)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
+		assert.Equal(t, 3, len(result))
 	})
 
 	t.Run("complex order well defined", func(t *testing.T) {
@@ -87,8 +89,8 @@ func TestTopologicalSorting(t *testing.T) {
 			"d": {"c", "a"},
 			"e": {"b", "c"},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
 		assertSliceEqual(t, result, []string{"c", "b", "e", "a", "d"})
 	})
 
@@ -102,8 +104,8 @@ func TestTopologicalSorting(t *testing.T) {
 			"f": {"a", "c", "e", "b", "d"},
 			"g": {"c", "f"},
 		}
-		result, error := TopologicalSort(adjList, true)
-		assertEqual(t, error, nil)
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
 		assertSliceEqual(t, result, []string{"c", "b", "e", "a", "d", "f", "g"})
 	})
 }
