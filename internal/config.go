@@ -200,9 +200,9 @@ func CheckConfig() error {
 			return err
 		}
 	}
-	_, error := SortLocationsTopologicalFromMap(c.Locations)
-	if error != nil {
-		return error
+
+	if _, err := SortLocationsTopologicalFromMap(c.Locations); err != nil {
+		return err
 	}
 
 	return nil
