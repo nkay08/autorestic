@@ -66,7 +66,7 @@ func TestLocationSorting(t *testing.T) {
 }
 
 func TestGetSelectedLocations(t *testing.T) {
-	config = &Config{
+	configInitial := Config{
 		Locations: map[string]Location{
 			"a": {
 				name: "a",
@@ -79,6 +79,7 @@ func TestGetSelectedLocations(t *testing.T) {
 			},
 		},
 	}
+	config = &configInitial
 
 	t.Run("test all Locations", func(t *testing.T) {
 		_, ok := GetLocation("a")
@@ -145,6 +146,37 @@ func TestGetSelectedLocations(t *testing.T) {
 
 		_, err := GetAllOrSelected(&cmd, false)
 		assert.NotEmpty(t, err)
+	})
+
+	t.Run("test sorting", func(t *testing.T) {
+		configTopological := Config{
+			Locations: map[string]Location{
+				"a": {
+					name:      "a",
+					DependsOn: []string{"c"},
+				},
+				"b": {
+					name:      "b",
+					DependsOn: []string{"a"},
+				},
+				"c": {
+					name: "c",
+				},
+			},
+		}
+
+		config = &configTopological
+
+		cmd := cobra.Command{}
+		AddFlagsToCommand(&cmd, false)
+		cmd.SetArgs([]string{"--all"})
+		cmd.Execute()
+
+		sortedLocStrings, err := GetAllOrSelected(&cmd, false)
+		assert.Empty(t, err)
+		assertSliceEqual(t, sortedLocStrings, []string{"c", "a", "b"})
+
+		config = &configInitial
 	})
 }
 

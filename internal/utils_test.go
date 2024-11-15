@@ -7,6 +7,14 @@ import (
 )
 
 func TestTopologicalSorting(t *testing.T) {
+
+	t.Run("empty", func(t *testing.T) {
+		adjList := map[string][]string{}
+		result, err := TopologicalSort(adjList, true)
+		assert.Empty(t, err)
+		assert.Empty(t, result)
+	})
+
 	t.Run("simple string well defined", func(t *testing.T) {
 		adjList := map[string][]string{
 			"a": {},
