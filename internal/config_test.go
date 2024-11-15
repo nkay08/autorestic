@@ -63,6 +63,27 @@ func TestLocationSorting(t *testing.T) {
 		assertEqual(t, error, nil)
 		assertSliceEqual(t, result, []string{"9", "1", "5"})
 	})
+
+	t.Run("test not in set", func(t *testing.T) {
+
+		locationsMap := map[string]Location{
+			"9": {
+				name: "9",
+			},
+			"1": {
+				name:      "1",
+				DependsOn: []string{"9", "777"},
+			},
+			"5": {
+				name:      "5",
+				DependsOn: []string{"1", "33"},
+			},
+		}
+
+		result, error := SortLocationsTopologicalFromMap(locationsMap)
+		assertEqual(t, error, nil)
+		assertSliceEqual(t, result, []string{"9", "1", "5"})
+	})
 }
 
 func TestGetSelectedLocations(t *testing.T) {
@@ -96,8 +117,8 @@ func TestGetSelectedLocations(t *testing.T) {
 		assertEqual(t, all, true)
 
 		locList, err2 := GetAllOrSelected(&cmd, false)
-		assertEqual(t, err2, nil)
-		assertEqual(t, len(locList), 3)
+		assert.Empty(t, err2)
+		assert.Equal(t, 3, len(locList))
 		assert.ElementsMatch(t, locList, []string{"a", "b", "c"})
 	})
 

@@ -214,37 +214,40 @@ func CheckConfig() error {
 	return nil
 }
 
-func GetLocationAdjacencyListFromLocationMap(locations map[string]Location) map[string][]string {
+func GetLocationAdjacencyListFromLocationMap(locations map[string]Location, add_not_in_set bool) map[string][]string {
 	locationsAsStrings := make(map[string][]string)
 	for key, location := range locations {
-		locationsAsStrings[key] = location.DependsOn
+		if _, ok := locationsAsStrings[key]; !ok {
+			locationsAsStrings[key] = []string{}
+		}
+		for _, depLocStr := range location.DependsOn {
+			// If the dependency is not in the set of locations, do not add it
+			if _, ok := locations[depLocStr]; ok || add_not_in_set {
+				locationsAsStrings[key] = append(locationsAsStrings[key], depLocStr)
+			}
+		}
 	}
 	return locationsAsStrings
 }
 
-func GetLocationAdjacencyListFromLocationStrings(locations []string) map[string][]string {
-	locationsAsStrings := make(map[string][]string)
+func GetLocationAdjacencyListFromLocationStrings(locations []string, add_not_in_set bool) map[string][]string {
+	locationsAsMap := make(map[string]Location)
 	for _, locationString := range locations {
-		location, _ := GetLocation(locationString)
-		locationsAsStrings[locationString] = location.DependsOn
+		if loc, ok := GetLocation(locationString); ok {
+			locationsAsMap[locationString] = loc
+		}
 	}
-	return locationsAsStrings
+	return GetLocationAdjacencyListFromLocationMap(locationsAsMap, add_not_in_set)
 }
 
 func SortLocationsTopologicalFromMap(locations map[string]Location) ([]string, error) {
-	adjacencyList := GetLocationAdjacencyListFromLocationMap(locations)
-	sortedStrings, error := TopologicalSort(adjacencyList, true)
-	return sortedStrings, error
-}
-
-func SortLocationsTopologicalFromStrings(locations []string) ([]string, error) {
-	adjacencyList := GetLocationAdjacencyListFromLocationStrings(locations)
+	adjacencyList := GetLocationAdjacencyListFromLocationMap(locations, false)
 	return TopologicalSort(adjacencyList, true)
 }
 
-func GetAllOrSelectedLocationsWithBackends(cmd *cobra.Command) ([][]string, error) {
-
-	return nil, nil
+func SortLocationsTopologicalFromStrings(locations []string) ([]string, error) {
+	adjacencyList := GetLocationAdjacencyListFromLocationStrings(locations, false)
+	return TopologicalSort(adjacencyList, true)
 }
 
 func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
@@ -261,7 +264,12 @@ func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 
 	all, _ := cmd.Flags().GetBool("all")
 	if all {
-		return list, nil
+		if backends {
+			return list, nil
+		} else {
+			list, err := SortLocationsTopologicalFromStrings(list)
+			return list, err
+		}
 	}
 
 	var selected []string
