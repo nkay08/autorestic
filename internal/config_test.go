@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cupcakearmy/autorestic/internal/lock"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -198,6 +200,44 @@ func TestGetSelectedLocations(t *testing.T) {
 		assertSliceEqual(t, sortedLocStrings, []string{"c", "a", "b"})
 
 		config = &configInitial
+	})
+}
+
+func TestGetDueCronLocations(t *testing.T) {
+	fs := new(afero.MemMapFs)
+	_, err := afero.TempFile(fs, "", ".autorestic.yml")
+
+	assert.Empty(t, err)
+	viper.SetConfigFile(".")
+
+	configInitial := Config{
+		Locations: map[string]Location{
+			"a": {
+				name:      "a",
+				DependsOn: []string{"c"},
+				Cron:      "* * * * *",
+			},
+			"b": {
+				name:      "b",
+				DependsOn: []string{"a"},
+			},
+			"c": {
+				name: "c",
+				Cron: "* * * * *",
+			},
+		},
+	}
+	config = &configInitial
+
+	for _, location := range config.Locations {
+		lock.SetCron(location.name, 0)
+	}
+
+	t.Run("test", func(t *testing.T) {
+		dueLocations, err := GetDueCronLocations(nil)
+		assert.Empty(t, err)
+		assert.NotEmpty(t, dueLocations)
+		assertSliceEqual(t, dueLocations, []string{"c", "a"})
 	})
 }
 

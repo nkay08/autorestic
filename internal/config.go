@@ -307,10 +307,19 @@ func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 
 func GetDueCronLocations(cmd *cobra.Command) ([]string, error) {
 	var cronLocations []string
-	allLocations, err := GetAllOrSelected(cmd, false)
+	var err error
+	var allLocations []string
+
+	if cmd != nil {
+		allLocations, err = GetAllOrSelected(cmd, false)
+	} else {
+		allLocations, err = SortLocationsTopologicalFromMap(config.Locations)
+	}
+
 	if err != nil {
 		return []string{}, err
 	}
+
 	for _, locationString := range allLocations {
 		if location, ok := GetLocation(locationString); ok {
 			runCron, err := location.CheckCron()
@@ -322,6 +331,7 @@ func GetDueCronLocations(cmd *cobra.Command) ([]string, error) {
 			}
 		}
 	}
+
 	return cronLocations, nil
 }
 
