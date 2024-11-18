@@ -118,7 +118,7 @@ func ArrayContains[T comparable](arr []T, needle T) bool {
 }
 
 func TopologicalSort[T comparable](adjacencyList map[T][]T, reverse bool) ([]T, error) {
-	// https://www.geeksforgeeks.org/topological-sorting-indegree-based-solution/
+	// Kahn’s algorithm for Topological Sorting; O(|V|+|E|)
 
 	var result []T
 
@@ -128,7 +128,7 @@ func TopologicalSort[T comparable](adjacencyList map[T][]T, reverse bool) ([]T, 
 
 	if reverse {
 		adjacencyListReverse := make(map[T][]T)
-		// to keep original sorting order, initialize reverse adjacency list with all nodes
+		// initialize reverse adjacency list with all nodes
 		for node := range adjacencyList {
 			adjacencyListReverse[node] = []T{}
 		}
@@ -165,10 +165,12 @@ func TopologicalSort[T comparable](adjacencyList map[T][]T, reverse bool) ([]T, 
 		}
 	}
 
+	// process queue while there are nodes with indegree 0
 	for len(queue) > 0 {
 		var currentNode T
 		currentNode, queue = queue[0], queue[1:]
 		result = append(result, currentNode)
+		// ignore duplicate edges
 		uniqueMap := make(map[T]int)
 		for _, adjacentNode := range adjacencyList[currentNode] {
 			uniqueMap[adjacentNode]++
