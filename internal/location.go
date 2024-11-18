@@ -55,7 +55,7 @@ type Location struct {
 	Options      Options              `mapstructure:"options,omitempty" yaml:"options,omitempty"`
 	ForgetOption LocationForgetOption `mapstructure:"forget,omitempty" yaml:"forget,omitempty"`
 	CopyOption   LocationCopy         `mapstructure:"copy,omitempty" yaml:"copy,omitempty"`
-	DependsOn    LocationDependency   `mapstructure:"depends_on,omitempty" depends_on:"copy,omitempty"`
+	DependsOn    LocationDependency   `mapstructure:"depends_on,omitempty" yaml:"depends_on:copy,omitempty"`
 }
 
 func GetLocation(name string) (Location, bool) {
