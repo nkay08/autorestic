@@ -207,14 +207,18 @@ func CheckConfig() error {
 		}
 	}
 
-	if _, err := SortLocationsTopologicalFromMap(c.Locations); err != nil {
+	if _, err := SortLocationsTopologicalFromMap(c.Locations, false); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func GetLocationAdjacencyListFromLocationMap(locations map[string]Location, add_not_in_set bool) map[string][]string {
+// Get Adjacency List from a map of locations.
+// This will not validate locations or use the config.
+//
+//	If addParent is True, this will add dependencies, even if they are not given in the initial list
+func GetLocationAdjacencyListFromLocationMap(locations map[string]Location, addParent bool) map[string][]string {
 	locationsAsStrings := make(map[string][]string)
 	for key, location := range locations {
 		if _, ok := locationsAsStrings[key]; !ok {
@@ -222,61 +226,58 @@ func GetLocationAdjacencyListFromLocationMap(locations map[string]Location, add_
 		}
 		for _, depLocStr := range location.DependsOn {
 			// If the dependency is not in the set of locations, do not add it
-			if _, ok := locations[depLocStr]; ok || add_not_in_set {
+			if _, ok := locations[depLocStr]; ok || addParent {
 				locationsAsStrings[key] = append(locationsAsStrings[key], depLocStr)
+				if _, ok := locations[depLocStr]; !ok {
+					locationsAsStrings[depLocStr] = []string{}
+				}
 			}
 		}
 	}
 	return locationsAsStrings
 }
 
-func GetLocationAdjacencyListFromLocationStrings(locations []string, add_not_in_set bool) map[string][]string {
+// Get the adjacency list for locations using a given list of strings and using the config.
+func GetLocationAdjacencyListFromLocationStrings(locations []string, addParent bool) map[string][]string {
 	locationsAsMap := make(map[string]Location)
 	for _, locationString := range locations {
 		if loc, ok := GetLocation(locationString); ok {
 			locationsAsMap[locationString] = loc
 		}
 	}
-	return GetLocationAdjacencyListFromLocationMap(locationsAsMap, add_not_in_set)
+	return GetLocationAdjacencyListFromLocationMap(locationsAsMap, addParent)
 }
 
-func SortLocationsTopologicalFromMap(locations map[string]Location) ([]string, error) {
-	adjacencyList := GetLocationAdjacencyListFromLocationMap(locations, false)
+// Sort locations without validating config
+func SortLocationsTopologicalFromMap(locations map[string]Location, addParent bool) ([]string, error) {
+	adjacencyList := GetLocationAdjacencyListFromLocationMap(locations, addParent)
 	return TopologicalSort(adjacencyList, true)
 }
 
-func SortLocationsTopologicalFromStrings(locations []string) ([]string, error) {
-	adjacencyList := GetLocationAdjacencyListFromLocationStrings(locations, false)
+// Sort locations and validate from config.
+func SortLocationsTopologicalFromStrings(locations []string, addParent bool) ([]string, error) {
+	adjacencyList := GetLocationAdjacencyListFromLocationStrings(locations, addParent)
+	for locstr := range adjacencyList {
+		if _, ok := GetLocation(locstr); !ok {
+			return []string{}, fmt.Errorf("invalid location \"%s\"", locstr)
+		}
+	}
 	return TopologicalSort(adjacencyList, true)
 }
 
-func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
+func GetAllOrSelectedLocations(selected []string, all bool, addParentLocation bool) ([]string, error) {
 	var list []string
-	if backends {
-		for name := range config.Backends {
-			list = append(list, name)
-		}
-	} else {
-		for name := range config.Locations {
-			list = append(list, name)
-		}
+	for name := range config.Locations {
+		list = append(list, name)
 	}
 
-	all, _ := cmd.Flags().GetBool("all")
 	if all {
-		if backends {
-			return list, nil
-		} else {
-			list, err := SortLocationsTopologicalFromStrings(list)
-			return list, err
-		}
+		list, err := SortLocationsTopologicalFromStrings(list, addParentLocation)
+		return list, err
 	}
 
-	var selected []string
-	if backends {
-		selected, _ = cmd.Flags().GetStringSlice("backend")
-	} else {
-		selected, _ = cmd.Flags().GetStringSlice("location")
+	if len(selected) == 0 {
+		return selected, fmt.Errorf("nothing selected, aborting")
 	}
 	for _, s := range selected {
 		var splitted = strings.Split(s, "@")
@@ -285,23 +286,58 @@ func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 				goto found
 			}
 		}
-		if backends {
-			return nil, fmt.Errorf("invalid backend \"%s\"", s)
-		} else {
-			return nil, fmt.Errorf("invalid location \"%s\"", s)
-		}
+		return nil, fmt.Errorf("invalid location \"%s\"", s)
 	found:
+	}
+
+	selected, err := SortLocationsTopologicalFromStrings(selected, addParentLocation)
+	return selected, err
+}
+
+func GetAllOrSelectedBackends(selected []string, all bool) ([]string, error) {
+	var list []string
+	for name := range config.Backends {
+		list = append(list, name)
+	}
+
+	if all {
+		return list, nil
 	}
 
 	if len(selected) == 0 {
 		return selected, fmt.Errorf("nothing selected, aborting")
 	}
 
+	for _, s := range selected {
+		// TODO: The split is not really necessary here
+		var splitted = strings.Split(s, "@")
+		for _, l := range list {
+			if l == splitted[0] {
+				goto found
+			}
+		}
+		return nil, fmt.Errorf("invalid backend \"%s\"", s)
+	found:
+	}
+
+	return selected, nil
+}
+
+func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
+	// Parse command options here and forward them to the actual Getter
+	all, _ := cmd.Flags().GetBool("all")
+
+	var selected []string
 	if backends {
-		return selected, nil
+		selected, _ = cmd.Flags().GetStringSlice("backend")
 	} else {
-		selected, err := SortLocationsTopologicalFromStrings(selected)
-		return selected, err
+		selected, _ = cmd.Flags().GetStringSlice("location")
+	}
+
+	if backends {
+		return GetAllOrSelectedBackends(selected, all)
+	} else {
+		return GetAllOrSelectedLocations(selected, all, false)
 	}
 }
 
@@ -315,7 +351,7 @@ func GetDueCronLocations(cmd *cobra.Command) ([]string, error) {
 	if cmd != nil {
 		allLocations, err = GetAllOrSelected(cmd, false)
 	} else {
-		allLocations, err = SortLocationsTopologicalFromMap(config.Locations)
+		allLocations, err = SortLocationsTopologicalFromMap(config.Locations, false)
 	}
 
 	if err != nil {

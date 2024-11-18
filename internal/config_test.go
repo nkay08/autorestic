@@ -40,7 +40,7 @@ func TestLocationSorting(t *testing.T) {
 			},
 		}
 
-		result, error := SortLocationsTopologicalFromMap(locationsMap)
+		result, error := SortLocationsTopologicalFromMap(locationsMap, false)
 		assertEqual(t, error, nil)
 		assertSliceEqual(t, result, []string{"a", "b", "c", "d", "e"})
 	})
@@ -61,7 +61,7 @@ func TestLocationSorting(t *testing.T) {
 			},
 		}
 
-		result, error := SortLocationsTopologicalFromMap(locationsMap)
+		result, error := SortLocationsTopologicalFromMap(locationsMap, false)
 		assertEqual(t, error, nil)
 		assertSliceEqual(t, result, []string{"9", "1", "5"})
 	})
@@ -82,7 +82,7 @@ func TestLocationSorting(t *testing.T) {
 			},
 		}
 
-		result, error := SortLocationsTopologicalFromMap(locationsMap)
+		result, error := SortLocationsTopologicalFromMap(locationsMap, false)
 		assertEqual(t, error, nil)
 		assertSliceEqual(t, result, []string{"9", "1", "5"})
 	})
@@ -198,6 +198,55 @@ func TestGetSelectedLocations(t *testing.T) {
 		sortedLocStrings, err := GetAllOrSelected(&cmd, false)
 		assert.Empty(t, err)
 		assertSliceEqual(t, sortedLocStrings, []string{"c", "a", "b"})
+
+		config = &configInitial
+	})
+
+	t.Run("test sorting add parent", func(t *testing.T) {
+		configTopological := Config{
+			Locations: map[string]Location{
+				"a": {
+					name:      "a",
+					DependsOn: []string{"c"},
+				},
+				"b": {
+					name:      "b",
+					DependsOn: []string{"a"},
+				},
+				"c": {
+					name: "c",
+				},
+			},
+		}
+
+		config = &configTopological
+
+		sortedLocStrings, err := GetAllOrSelectedLocations([]string{"a"}, false, true)
+		assert.Empty(t, err)
+		assertSliceEqual(t, sortedLocStrings, []string{"c", "a"})
+
+		config = &configInitial
+	})
+
+	t.Run("test sorting add parent not exist", func(t *testing.T) {
+		configTopological := Config{
+			Locations: map[string]Location{
+				"a": {
+					name:      "a",
+					DependsOn: []string{"c"},
+				},
+				"b": {
+					name:      "b",
+					DependsOn: []string{"a"},
+				},
+			},
+		}
+
+		config = &configTopological
+
+		sortedLocStrings, err := GetAllOrSelectedLocations([]string{"a"}, false, true)
+		assert.NotEmpty(t, err)
+		assert.Empty(t, sortedLocStrings)
 
 		config = &configInitial
 	})
