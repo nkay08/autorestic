@@ -444,6 +444,7 @@ func (l Location) Restore(to, from string, force bool, snapshot string, options 
 	return nil
 }
 
+// Check if a location is due to run a backup based on the current time and its cron attribute
 func (l Location) CheckCron() (bool, error) {
 	if l.Cron == "" {
 		return false, nil

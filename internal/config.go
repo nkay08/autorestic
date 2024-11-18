@@ -305,6 +305,8 @@ func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 	}
 }
 
+// Return list of locations that are due to run based on the current time and each location's cron attribute.
+// The list of locations will be topologically sorted.
 func GetDueCronLocations(cmd *cobra.Command) ([]string, error) {
 	var cronLocations []string
 	var err error
