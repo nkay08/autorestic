@@ -444,19 +444,33 @@ func (l Location) Restore(to, from string, force bool, snapshot string, options 
 	return nil
 }
 
-func (l Location) RunCron() error {
+func (l Location) CheckCron() (bool, error) {
 	if l.Cron == "" {
-		return nil
+		return false, nil
 	}
 
 	schedule, err := cron.ParseStandard(l.Cron)
 	if err != nil {
-		return err
+		return false, err
 	}
 	last := time.Unix(lock.GetCron(l.name), 0)
 	next := schedule.Next(last)
 	now := time.Now()
 	if now.After(next) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (l Location) RunCron() error {
+	runCron, err := l.CheckCron()
+
+	if err != nil {
+		return nil
+	}
+	if runCron {
+		now := time.Now()
 		lock.SetCron(l.name, now.Unix())
 		errs := l.Backup(true, "")
 		if len(errs) > 0 {

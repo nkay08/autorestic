@@ -1,6 +1,14 @@
 package internal
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/cupcakearmy/autorestic/internal/lock"
+	"github.com/spf13/afero"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestGetType(t *testing.T) {
 
@@ -90,4 +98,52 @@ func TestBuildRestoreCommand(t *testing.T) {
 	result := buildRestoreCommand(l, "to", "snapshot", []string{"options"})
 	expected := []string{"restore", "--target", "to", "--tag", "ar:location:foo", "snapshot", "options"}
 	assertSliceEqual(t, result, expected)
+}
+
+func TestCron(t *testing.T) {
+	now := time.Now()
+
+	loc := Location{
+		name: "a",
+	}
+
+	t.Run("check empty", func(t *testing.T) {
+		loc.Cron = ""
+		runCron, err := loc.CheckCron()
+		assert.Empty(t, err)
+		assert.False(t, runCron)
+	})
+
+	t.Run("check wrong cron format ", func(t *testing.T) {
+		loc.Cron = "xyada"
+		runCron, err := loc.CheckCron()
+		assert.NotEmpty(t, err)
+		assert.False(t, runCron)
+	})
+
+	// create virtual file
+	fs := new(afero.MemMapFs)
+	_, err := afero.TempFile(fs, "", ".autorestic.yml")
+
+	assert.Empty(t, err)
+	viper.SetConfigFile(".")
+
+	t.Run("check due ", func(t *testing.T) {
+		// start of epoch 1970-01-01
+		lock.SetCron(loc.name, 0)
+		// every minute
+		loc.Cron = "* * * * *"
+		runCron, err := loc.CheckCron()
+		assert.Empty(t, err)
+		assert.True(t, runCron)
+	})
+
+	t.Run("check not due ", func(t *testing.T) {
+		lock.SetCron(loc.name, now.Unix())
+		// every 7 days
+		loc.Cron = "0 0 * * 0"
+		runCron, err := loc.CheckCron()
+		assert.Empty(t, err)
+		assert.False(t, runCron)
+	})
 }

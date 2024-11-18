@@ -6,15 +6,20 @@ import (
 )
 
 func RunCron() error {
-	c := GetConfig()
+	GetConfig()
+
+	cronLocations, err := GetDueCronLocations(nil)
+	if err != nil {
+		return err
+	}
 	var errs []error
-	for name, l := range c.Locations {
-		l.name = name
-		if err := l.RunCron(); err != nil {
-			errs = append(errs, err)
+	for _, locationString := range cronLocations {
+		if l, ok := GetLocation(locationString); ok {
+			if err := l.RunCron(); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
-
 	if len(errs) > 0 {
 		return fmt.Errorf("Encountered errors during cron process:\n%w", errors.Join(errs...))
 	}

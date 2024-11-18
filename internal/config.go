@@ -305,6 +305,26 @@ func GetAllOrSelected(cmd *cobra.Command, backends bool) ([]string, error) {
 	}
 }
 
+func GetDueCronLocations(cmd *cobra.Command) ([]string, error) {
+	var cronLocations []string
+	allLocations, err := GetAllOrSelected(cmd, false)
+	if err != nil {
+		return []string{}, err
+	}
+	for _, locationString := range allLocations {
+		if location, ok := GetLocation(locationString); ok {
+			runCron, err := location.CheckCron()
+			if err != nil {
+				return []string{}, err
+			}
+			if runCron {
+				cronLocations = append(cronLocations, locationString)
+			}
+		}
+	}
+	return cronLocations, nil
+}
+
 func AddFlagsToCommand(cmd *cobra.Command, backend bool) {
 	var usage string
 	if backend {
